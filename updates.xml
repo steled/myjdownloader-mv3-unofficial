@@ -3,8 +3,8 @@
   <app appid='fmkbdabocafmlifkegdbglpijpdmnomk'>
     <!-- x-release-please-start-version -->
     <updatecheck
-      codebase='https://github.com/steled/myjdownloader-mv3-unofficial/releases/download/v3.3.21/myjdownloader-mv3.crx'
-      version='3.3.21' />
+      codebase='https://github.com/steled/myjdownloader-mv3-unofficial/releases/download/v3.3.22/myjdownloader-mv3.crx'
+      version='3.3.22' />
     <!-- x-release-please-end -->
   </app>
 </gupdate>

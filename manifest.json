@@ -24,54 +24,96 @@
          }
       }
    },
-   "content_scripts": [ {
-      "all_frames": true,
-      "js": [ "contentscripts/cnlInterceptorMain.js" ],
-      "matches": [ "<all_urls>" ],
-      "run_at": "document_start",
-      "world": "MAIN"
-   }, {
-      "all_frames": true,
-      "js": [ "contentscripts/cnlContentscript.js" ],
-      "matches": [ "<all_urls>" ],
-      "run_at": "document_start"
-   }, {
-      "all_frames": true,
-      "js": [ "contentscripts/rc2Contentscript.js" ],
-      "matches": [ "<all_urls>" ],
-      "run_at": "document_start"
-   }, {
-      "all_frames": true,
-      "js": [ "contentscripts/rc2LoadingIndicator.js" ],
-      "matches": [ "<all_urls>" ],
-      "run_at": "document_start"
-   }, {
-      "all_frames": true,
-      "js": [ "contentscripts/onCopyContentscript.js" ],
-      "matches": [ "<all_urls>" ],
-      "run_at": "document_start"
-   }, {
-      "all_frames": true,
-      "js": [ "contentscripts/toolbarContentscript.js" ],
-      "matches": [ "<all_urls>" ],
-      "run_at": "document_start"
-   }, {
-      "all_frames": true,
-      "js": [ "contentscripts/selectionContentscript.js" ],
-      "matches": [ "<all_urls>" ],
-      "run_at": "document_start"
-   }, {
-      "all_frames": true,
-      "js": [ "contentscripts/webinterfaceEnhancer.js" ],
-      "matches": [ "http://my.jdownloader.org/*", "https://my.jdownloader.org/*" ],
-      "run_at": "document_end"
-   } ],
+   "content_scripts": [
+      {
+         "all_frames": true,
+         "js": [
+            "contentscripts/cnlInterceptorMain.js"
+         ],
+         "matches": [
+            "<all_urls>"
+         ],
+         "run_at": "document_start",
+         "world": "MAIN"
+      },
+      {
+         "all_frames": true,
+         "js": [
+            "contentscripts/cnlContentscript.js"
+         ],
+         "matches": [
+            "<all_urls>"
+         ],
+         "run_at": "document_start"
+      },
+      {
+         "all_frames": true,
+         "js": [
+            "contentscripts/rc2Contentscript.js"
+         ],
+         "matches": [
+            "<all_urls>"
+         ],
+         "run_at": "document_start"
+      },
+      {
+         "all_frames": true,
+         "js": [
+            "contentscripts/rc2LoadingIndicator.js"
+         ],
+         "matches": [
+            "<all_urls>"
+         ],
+         "run_at": "document_start"
+      },
+      {
+         "all_frames": true,
+         "js": [
+            "contentscripts/onCopyContentscript.js"
+         ],
+         "matches": [
+            "<all_urls>"
+         ],
+         "run_at": "document_start"
+      },
+      {
+         "all_frames": true,
+         "js": [
+            "contentscripts/toolbarContentscript.js"
+         ],
+         "matches": [
+            "<all_urls>"
+         ],
+         "run_at": "document_start"
+      },
+      {
+         "all_frames": true,
+         "js": [
+            "contentscripts/selectionContentscript.js"
+         ],
+         "matches": [
+            "<all_urls>"
+         ],
+         "run_at": "document_start"
+      },
+      {
+         "all_frames": true,
+         "js": [
+            "contentscripts/webinterfaceEnhancer.js"
+         ],
+         "matches": [
+            "http://my.jdownloader.org/*",
+            "https://my.jdownloader.org/*"
+         ],
+         "run_at": "document_end"
+      }
+   ],
    "default_locale": "en",
    "description": "__MSG_extensionDescription__",
    "homepage_url": "https://github.com/steled/myjdownloader-mv3-unofficial",
    "icons": {
-      "128": "images/icon128.png",
-      "48": "images/icon48.png"
+      "48": "images/icon48.png",
+      "128": "images/icon128.png"
    },
    "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA2MnXXbtecTIzypeWngBHqaz4BTo1PP2Y3ZYLj3wpLOwifflQor8p3v8pvtnrFSWTem5f/9tjlFOYxFnFHm7YnpbAbikpC43kldKr+eqh3rHh+0n6h5oBdVUvUAVncNVoHUq+AP3+bG1QAICAZVCIPbMisBrt/0/X6N3mlkhJ9OiCPJy4sp44mmer4B8BToXVovNtrM6y4dLn+4SzH6YXMhp3mb+AhaFjpKIg/T5LEftZkDgkmJRGYQgvLj9uQRt3biLzTojo24NwuqxkKeOASJijJYQdB3wpJ77yafXiCfTK4FOnvsOY1SvcEoS2vz+Sb3w9FkAydzsd/jKylfV6UQIDAQAB",
    "manifest_version": 3,
@@ -79,13 +121,31 @@
    "options_ui": {
       "page": "index.html#!/settings"
    },
-   "permissions": [ "tabs", "storage", "contextMenus", "scripting", "declarativeNetRequest", "declarativeNetRequestFeedback" ],
-   "host_permissions": [ "<all_urls>" ],
+   "permissions": [
+      "tabs",
+      "storage",
+      "contextMenus",
+      "scripting",
+      "declarativeNetRequest",
+      "declarativeNetRequestFeedback"
+   ],
+   "host_permissions": [
+      "<all_urls>"
+   ],
    "short_name": "MyJDownloader",
    "update_url": "https://raw.githubusercontent.com/steled/myjdownloader-mv3-unofficial/main/updates.xml",
-   "version": "3.3.21",
-   "web_accessible_resources": [ {
-      "resources": [ "toolbar.html", "autograbber-indicator.html", "res/browser_solver_template.html", "res/jdcheck.js" ],
-      "matches": [ "<all_urls>" ]
-   } ]
+   "version": "3.3.22",
+   "web_accessible_resources": [
+      {
+         "resources": [
+            "toolbar.html",
+            "autograbber-indicator.html",
+            "res/browser_solver_template.html",
+            "res/jdcheck.js"
+         ],
+         "matches": [
+            "<all_urls>"
+         ]
+      }
+   ]
 }
