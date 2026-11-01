@@ -29,7 +29,7 @@
       "matchDepNames": [
         "node"
       ],
-      "allowedVersions": "/^\d*[02468]\.\d+\.\d+$/"
+      "allowedVersions": "/^\\d*[02468]\\.\\d+\\.\\d+$/"
     }
   ]
 }
