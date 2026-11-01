@@ -20,6 +20,16 @@
         "npm"
       ],
       "semanticCommitType": "build"
+    },
+    {
+      "description": "Only propose Node.js versions from even-numbered (LTS) lines",
+      "matchDatasources": [
+        "node-version"
+      ],
+      "matchDepNames": [
+        "node"
+      ],
+      "allowedVersions": "/^\d*[02468]\.\d+\.\d+$/"
     }
   ]
 }
