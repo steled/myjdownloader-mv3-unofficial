@@ -5,10 +5,10 @@ angular.module('myjdWebextensionApp')
         function () {
             this.updateBadge = function (attributes) {
                 if (attributes.color !== undefined) {
-                    chrome.browserAction.setBadgeBackgroundColor({color: attributes.color});
+                    chrome.action.setBadgeBackgroundColor({color: attributes.color});
                 }
                 if (attributes.text !== undefined) {
-                    chrome.browserAction.setBadgeText({text: attributes.text});
+                    chrome.action.setBadgeText({text: attributes.text});
                 }
             }
         }]);

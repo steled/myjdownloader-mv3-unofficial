@@ -246,8 +246,8 @@ let CaptchaFormInjector = (function () {
     setInterval(function () {
       if (document.documentElement && document.documentElement.scrollHeight && document.documentElement.scrollWidth) {
         // Firefox: document.body.scrollHeight not returning correct values if body contains position:fixed elements -> using document.documentElement
-        let currentHeight = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight);
-        let currentWidth = Math.max(document.documentElement.scrollWidth, document.body.scrollWidth);
+        let currentHeight = Math.max(document.documentElement.scrollHeight, document.body ? document.body.scrollHeight : 0);
+        let currentWidth = Math.max(document.documentElement.scrollWidth, document.body ? document.body.scrollWidth : 0);
         if (lastKnownHeight !== (currentHeight - 32) || lastKnownWidth !== (currentWidth - 16)) {
           lastKnownHeight = currentHeight;
           lastKnownWidth = currentWidth;

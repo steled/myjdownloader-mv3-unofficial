@@ -16,6 +16,7 @@ angular.module('myjdWebextensionApp')
             var myjdService = this;
             this.api;
             this.lastConnectionState = -1;
+            this._connectPromise = null;
 
             this.isConnected = function () {
                 return myjdService.lastConnectionState === 0;
@@ -74,14 +75,12 @@ angular.module('myjdWebextensionApp')
             };
 
             function init() {
-                // as long as we are using the old API client, we need to push credentials from web extensions storage back to local storage
                 try {
-                    myjdService.connect();
+                    myjdService._connectPromise = myjdService.connect();
                 } catch (e) {
+                    myjdService._connectPromise = $q.reject(e);
                 }
             }
-
-            init();
 
             this.disconnect = function () {
                 return $q(function (resolve, reject) {
@@ -98,60 +97,76 @@ angular.module('myjdWebextensionApp')
                 });
             };
 
-            var _connect = function (creds, resolve, reject) {
-                myjdService.api.connect(creds).fail(function (e) {
-                    myjdService.apiConnectionObserver.onNext(createObservableValue(myjdService.CONNECTION_STATES.DISCONNECTED, ApiErrorService.createApiError(e)));
-                    reject(ApiErrorService.createApiError(e));
-                }).done(function (data) {
-                    if (data && data.sessiontoken && data.regaintoken && data.serverEncryptionToken) {
-                        myjdService.apiConnectionObserver.onNext(createObservableValue(myjdService.CONNECTION_STATES.CONNECTED));
-                    } else {
-                        // already logged in with restored session
-                        myjdService.apiConnectionObserver.onNext(createObservableValue(myjdService.CONNECTION_STATES.CONNECTED));
-                    }
-
-                    resolve();
-                });
-            };
-
             this.connect = function (credentials, forceReinit) {
                 return $q(function (resolve, reject) {
                     if (!myjdService.api || credentials !== undefined || forceReinit === true) {
+                        var isResume = !(credentials && credentials.email);
+                        console.log("[JD Debug] connect() called. isResume=" + isResume + ", forceReinit=" + forceReinit);
+                        chrome.storage.local.get("jdapi/src/core/core.js", function (stored) {
+                            console.log("[JD Debug] Storage key 'jdapi/src/core/core.js' at connect() time:", JSON.stringify(stored));
+                        });
+
                         require(["jdapi"], function (API) {
-                            myjdService.apiConnectionObserver.onNext(createObservableValue(myjdService.CONNECTION_STATES.CONNECTING));
-                            myjdService.api = new API({
+                            myjdService.apiConnectionObserver.onNext(
+                                createObservableValue(myjdService.CONNECTION_STATES.CONNECTING));
+
+                            var options = {
                                 API_ROOT: "https://api.jdownloader.org",
                                 APP_KEY: "myjd_webextension_" + createBrowserDebugInfo().browserName.toLowerCase()
-                            });
+                            };
+                            if (credentials && credentials.email && credentials.password) {
+                                options.email = credentials.email;
+                                options.pass  = credentials.password;
+                            }
+
+                            var connectDeferred = $.Deferred();
+                            myjdService.api = new API(options, connectDeferred);
                             window.jdapi = myjdService.api;
                             myjdService.api.addAPIStateChangeListener(myjdService.apiStateChanceListener);
-                            var creds = {};
-                            if (credentials && credentials.email && credentials.password) {
-                                creds = {
-                                    email: credentials.email,
-                                    pass: credentials.password
-                                };
-                            }
-                            _connect(creds, resolve, reject);
-                        }
-                        );
+
+                            connectDeferred.promise().then(
+                                function () {
+                                    var token = myjdService.api && myjdService.api.jdAPICore &&
+                                                myjdService.api.jdAPICore.options &&
+                                                myjdService.api.jdAPICore.options.sessiontoken;
+                                    console.log("[JD Debug] connectDeferred RESOLVED. sessiontoken present:", !!(token && token.length > 0));
+                                    resolve();
+                                },
+                                function (e) {
+                                    console.log("[JD Debug] connectDeferred REJECTED:", e);
+                                    myjdService.apiConnectionObserver.onNext(
+                                        createObservableValue(myjdService.CONNECTION_STATES.DISCONNECTED,
+                                                              ApiErrorService.createApiError(e)));
+                                    reject(ApiErrorService.createApiError(e));
+                                }
+                            );
+                        });
                     } else {
                         resolve();
                     }
                 });
             };
 
+            init();
+
             this.getDeviceList = function () {
                 return $q(function (resolve, reject) {
                     try {
+                        console.log("[JD Debug] getDeviceList() - calling api.listDevices()");
                         var deviceListDef = myjdService.api.listDevices();
                         deviceListDef.fail(function (e) {
+                            console.log("[JD Debug] getDeviceList() listDevices FAILED:", JSON.stringify(e));
+                            chrome.storage.local.get("jdapi/src/core/core.js", function (stored) {
+                                console.log("[JD Debug] Storage after listDevices fail:", JSON.stringify(stored));
+                            });
                             reject(ApiErrorService.createApiError(e));
                         });
                         deviceListDef.done(function (data) {
+                            console.log("[JD Debug] getDeviceList() listDevices succeeded, devices:", data && data.length);
                             resolve(createObservableValue(data));
                         });
                     } catch (e) {
+                        console.log("[JD Debug] getDeviceList() EXCEPTION:", e);
                         reject(ApiErrorService.createApiError(e));
                     }
                 });
