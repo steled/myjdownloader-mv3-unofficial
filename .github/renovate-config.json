@@ -1,0 +1,13 @@
+{
+  "assigneesFromCodeOwners": true,
+  "branchPrefix": "renovate/",
+  "gitAuthor": "cheeky-badger-bot <219245588+cheeky-badger-bot@users.noreply.github.com>",
+  "onboarding": false,
+  "platform": "github",
+  "prConcurrentLimit": 10,
+  "prHourlyLimit": 10,
+  "repositories": [
+    "steled/myjdownloader-mv3-unofficial"
+  ],
+  "username": "cheeky-badger-bot"
+}

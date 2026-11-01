@@ -1,0 +1,25 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "github>steled/renovate-config"
+  ],
+  "enabledManagers": [
+    "npm",
+    "github-actions"
+  ],
+  "semanticCommits": "enabled",
+  "packageRules": [
+    {
+      "matchManagers": [
+        "github-actions"
+      ],
+      "semanticCommitType": "ci"
+    },
+    {
+      "matchManagers": [
+        "npm"
+      ],
+      "semanticCommitType": "build"
+    }
+  ]
+}
