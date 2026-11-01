@@ -52,7 +52,16 @@ test.beforeAll(async () => {
     headless: false, // extensions need a headed browser; CI runs this under xvfb
     args: [`--disable-extensions-except=${extensionPath}`, `--load-extension=${extensionPath}`],
   });
-  extensionId = new URL((await getServiceWorker()).url()).host;
+  const sw = await getServiceWorker();
+  extensionId = new URL(sw.url()).host;
+  // Record the Click'n'Load messages the relay sends. The in-page toolbar may empty the queue
+  // right away when nobody is logged in, so the queue itself is not a reliable witness.
+  await sw.evaluate(() => {
+    globalThis.__cnl = [];
+    chrome.runtime.onMessage.addListener((m) => {
+      if (m && m.name === "myjd-cnl") globalThis.__cnl.push(m.data.formData);
+    });
+  });
 });
 
 test.afterAll(async () => {
@@ -81,7 +90,7 @@ test('popup boots AngularJS without errors and shows the login form', async () =
   await page.close();
 });
 
-test('fetch POST to the Click\'n\'Load port is intercepted and queued', async () => {
+test('fetch POST to the Click\'n\'Load port is intercepted and forwarded to the service worker', async () => {
   const page = await context.newPage();
   await page.goto(`${pageBase}/`);
   const result = await page.evaluate(async () => {
@@ -93,13 +102,13 @@ test('fetch POST to the Click\'n\'Load port is intercepted and queued', async ()
   });
   expect(result).toEqual({ status: 200, text: 'success' });
   await expect.poll(async () => (await getServiceWorker()).evaluate(
-    () => Object.values(requestQueue).flat().filter((r) => r.type === 'cnl' && r.content.package === 'fetch-pkg').length,
+    (pkg) => globalThis.__cnl.filter((f) => f.package === pkg).length, 'fetch-pkg',
   )).toBe(1);
   expect(cnlHits).toEqual([]);
   await page.close();
 });
 
-test('XHR POST to the Click\'n\'Load port is intercepted and queued', async () => {
+test('XHR POST to the Click\'n\'Load port is intercepted and forwarded to the service worker', async () => {
   const page = await context.newPage();
   await page.goto(`${pageBase}/`);
   const result = await page.evaluate(() => new Promise((resolve) => {
@@ -110,7 +119,7 @@ test('XHR POST to the Click\'n\'Load port is intercepted and queued', async () =
   }));
   expect(result).toEqual({ status: 200, text: 'success' });
   await expect.poll(async () => (await getServiceWorker()).evaluate(
-    () => Object.values(requestQueue).flat().filter((r) => r.type === 'cnl' && r.content.package === 'xhr-pkg').length,
+    (pkg) => globalThis.__cnl.filter((f) => f.package === pkg).length, 'xhr-pkg',
   )).toBe(1);
   expect(cnlHits).toEqual([]);
   await page.close();
