@@ -28,7 +28,7 @@ angular.module('myjdWebextensionApp')
                 var initPromise = client._connectPromise || $q.resolve();
                 console.log("[JD Debug] getSessionInfo() called, waiting for _connectPromise");
                 chrome.storage.local.get("jdapi/src/core/core.js", function (stored) {
-                    console.log("[JD Debug] getSessionInfo - storage at call time:", JSON.stringify(stored));
+                    console.log("[JD Debug] getSessionInfo - storage at call time:", "session stored:", !!(stored && stored["jdapi/src/core/core.js"]));
                 });
                 return initPromise.then(
                     function () {

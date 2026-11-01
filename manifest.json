@@ -83,7 +83,7 @@
    "host_permissions": [ "<all_urls>" ],
    "short_name": "MyJDownloader",
    "update_url": "https://raw.githubusercontent.com/steled/myjdownloader-mv3-unofficial/main/updates.xml",
-   "version": "3.3.20",
+   "version": "3.3.21",
    "web_accessible_resources": [ {
       "resources": [ "toolbar.html", "autograbber-indicator.html", "res/browser_solver_template.html", "res/jdcheck.js" ],
       "matches": [ "<all_urls>" ]

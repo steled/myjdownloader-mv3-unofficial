@@ -103,7 +103,7 @@ angular.module('myjdWebextensionApp')
                         var isResume = !(credentials && credentials.email);
                         console.log("[JD Debug] connect() called. isResume=" + isResume + ", forceReinit=" + forceReinit);
                         chrome.storage.local.get("jdapi/src/core/core.js", function (stored) {
-                            console.log("[JD Debug] Storage key 'jdapi/src/core/core.js' at connect() time:", JSON.stringify(stored));
+                            console.log("[JD Debug] Storage key 'jdapi/src/core/core.js' at connect() time:", "session stored:", !!(stored && stored["jdapi/src/core/core.js"]));
                         });
 
                         require(["jdapi"], function (API) {
@@ -157,7 +157,7 @@ angular.module('myjdWebextensionApp')
                         deviceListDef.fail(function (e) {
                             console.log("[JD Debug] getDeviceList() listDevices FAILED:", JSON.stringify(e));
                             chrome.storage.local.get("jdapi/src/core/core.js", function (stored) {
-                                console.log("[JD Debug] Storage after listDevices fail:", JSON.stringify(stored));
+                                console.log("[JD Debug] Storage after listDevices fail:", "session stored:", !!(stored && stored["jdapi/src/core/core.js"]));
                             });
                             reject(ApiErrorService.createApiError(e));
                         });
