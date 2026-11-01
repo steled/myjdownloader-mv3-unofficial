@@ -73,6 +73,21 @@ The private key `myjd-mv3.pem` determines the extension ID. If it is lost, a new
 | `res/jdcheck.js` | Served instead of `127.0.0.1:9666/jdcheck.js` through `declarativeNetRequest` |
 | `updates.xml` | Chrome update manifest |
 
+## Contributing
+
+Commits follow [Conventional Commits](https://www.conventionalcommits.org/) and are written in English, so versions map to [SemVer](https://semver.org/):
+
+| Type | Effect on the version |
+| --- | --- |
+| `fix:` | patch (`3.3.21` -> `3.3.22`) |
+| `feat:` | minor (`3.3.21` -> `3.4.0`) |
+| `feat!:` or a `BREAKING CHANGE:` footer | major |
+| `docs:`, `chore:`, `build:`, `ci:`, `refactor:`, `test:` | no release needed |
+
+Commits are checked by [commitlint](https://commitlint.js.org) in CI. To check them locally as well, run `npm install` once (needs Node.js); this installs a `commit-msg` hook.
+
+Releases are created by tagging: bump `version` in `manifest.json` and `updates.xml`, then `git tag vX.Y.Z && git push origin vX.Y.Z`. The tag triggers the release workflow.
+
 ## Privacy
 
 The extension talks to `api.jdownloader.org` (MyJDownloader), to `my.jdownloader.org` for the web interface enhancements, and to your own JDownloader on `127.0.0.1` for captcha and Click'n'Load. Your session tokens are stored in `chrome.storage.local`. No analytics, no third-party servers.

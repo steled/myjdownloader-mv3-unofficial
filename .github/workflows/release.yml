@@ -47,7 +47,8 @@ jobs:
           src="${RUNNER_TEMP}/myjdownloader-mv3"
           mkdir -p "${src}"
           git ls-files -z | xargs -0 -I{} cp --parents "{}" "${src}/"
-          rm -rf "${src}/.github" "${src}/updates.xml" "${src}/.gitignore" "${src}/README.md"
+          rm -rf "${src}/.github" "${src}/.husky" "${src}/updates.xml" "${src}/.gitignore" "${src}/README.md" \
+            "${src}/package.json" "${src}/package-lock.json" "${src}/commitlint.config.js"
           xvfb-run -a google-chrome-stable --no-sandbox \
             --pack-extension="${src}" \
             --pack-extension-key="${RUNNER_TEMP}/myjd-mv3.pem"
