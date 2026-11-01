@@ -1,6 +1,10 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <gupdate xmlns='http://www.google.com/update2/response' protocol='2.0'>
   <app appid='fmkbdabocafmlifkegdbglpijpdmnomk'>
-    <updatecheck codebase='https://github.com/steled/myjdownloader-mv3-unofficial/releases/download/v3.3.21/myjdownloader-mv3.crx' version='3.3.21' />
+    <!-- x-release-please-start-version -->
+    <updatecheck
+      codebase='https://github.com/steled/myjdownloader-mv3-unofficial/releases/download/v3.3.21/myjdownloader-mv3.crx'
+      version='3.3.21' />
+    <!-- x-release-please-end -->
   </app>
 </gupdate>

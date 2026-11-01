@@ -86,7 +86,7 @@ Commits follow [Conventional Commits](https://www.conventionalcommits.org/) and 
 
 Commits are checked by [commitlint](https://commitlint.js.org) in CI. To check them locally as well, run `npm install` once (needs Node.js); this installs a `commit-msg` hook.
 
-Releases are created by tagging: bump `version` in `manifest.json` and `updates.xml`, then `git tag vX.Y.Z && git push origin vX.Y.Z`. The tag triggers the release workflow.
+Releases are automated with [release-please](https://github.com/googleapis/release-please): it keeps a release PR up to date from the commits on `main` (version bump in `manifest.json` and `updates.xml`, `CHANGELOG.md`). Merging that PR creates the tag and GitHub release, and the workflow attaches the signed `.crx`. Use `Release-As: X.Y.Z` as a commit footer to force a version.
 
 ## Privacy
 
