@@ -435,17 +435,50 @@ define("coreRequestHandler", ["coreCrypto", "coreCryptoUtils"], function (CoreCr
                 }
                 //lock exists and is not timed out
                 if (reconnectLock && (new Date().getTime() - reconnectLock.time) < 5000) {
-                    // wait for reconnect
-                    // listen to local storage
-                    window.addEventListener('storage', function (event) {
-                        if (event.key === this.LOCAL_STORAGE_KEY) {
-                            if (!e.newValue) {
-                                handshake.reject();
-                            } else {
+                    // wait for the other page to finish its reconnect. The DOM 'storage'
+                    // event never fires for chrome.storage, so listen to chrome.storage.
+                    var settled = false;
+                    var finish = function (ok, err) {
+                        if (settled) return;
+                        settled = true;
+                        clearTimeout(lockTimeout);
+                        chrome.storage.onChanged.removeListener(onStorageChanged);
+                        if (ok) {
+                            // adopt the tokens the other page just stored
+                            dataStore.getItem(self.LOCAL_STORAGE_KEY).then(function (res) {
+                                try {
+                                    var fresh = JSON.parse(res[self.LOCAL_STORAGE_KEY]);
+                                    options.sessiontoken = fresh.sessiontoken;
+                                    options.regaintoken = fresh.regaintoken;
+                                    if (fresh.serverEncryptionToken) {
+                                        options.serverEncryptionToken = CoreCrypto.lib.WordArray.random(fresh.serverEncryptionToken.sigBytes);
+                                        options.serverEncryptionToken.words = fresh.serverEncryptionToken.words;
+                                    }
+                                    if (fresh.deviceEncryptionToken) {
+                                        options.deviceEncryptionTokenOld = options.deviceEncryptionToken;
+                                        options.deviceEncryptionToken = CoreCrypto.lib.WordArray.random(fresh.deviceEncryptionToken.sigBytes);
+                                        options.deviceEncryptionToken.words = fresh.deviceEncryptionToken.words;
+                                    }
+                                } catch (e) { /* keep current options */ }
                                 handshake.resolve();
-                            }
+                            });
+                        } else {
+                            handshake.reject(err);
                         }
-                    }, false);
+                    };
+                    var onStorageChanged = function (changes) {
+                        if (changes[self.LOCAL_STORAGE_KEY]) {
+                            finish(!!changes[self.LOCAL_STORAGE_KEY].newValue);
+                        }
+                    };
+                    chrome.storage.onChanged.addListener(onStorageChanged);
+                    // lock holder died or never finished: try again ourselves once the lock has expired
+                    var lockTimeout = setTimeout(function () {
+                        if (settled) return;
+                        settled = true;
+                        chrome.storage.onChanged.removeListener(onStorageChanged);
+                        self.reconnect(options, rid).then(handshake.resolve, handshake.reject);
+                    }, 5500);
                 } else {
                     //create lock
                     dataStore.setItem(LOCAL_STORAGE_RECONNECT_LOCK_KEY, JSON.stringify({
@@ -463,7 +496,7 @@ define("coreRequestHandler", ["coreCrypto", "coreCryptoUtils"], function (CoreCr
                         params.rid = rid;
 
                         var queryString = action + "?" + $.param(params);
-                        queryString += "&signature=" + CoreCrypto.HmacSHA256(CoreCrypto.enc.Utf8.parse(queryString), options.serverEncryptionToken).toString(this.transferEncoding);
+                        queryString += "&signature=" + CoreCrypto.HmacSHA256(CoreCrypto.enc.Utf8.parse(queryString), options.serverEncryptionToken).toString(self.transferEncoding);
 
                         //reconnect yourself
                         var reauth = $.ajax({
@@ -476,7 +509,10 @@ define("coreRequestHandler", ["coreCrypto", "coreCryptoUtils"], function (CoreCr
                             }
                         });
                         // if authentication fails, reject the handshake
-                        reauth.fail(handshake.reject.bind(handshake));
+                        reauth.fail(function () {
+                            dataStore.removeItem(LOCAL_STORAGE_RECONNECT_LOCK_KEY);
+                            handshake.reject.apply(handshake, arguments);
+                        });
                         // if the handshake gets rejected beforehand (e.g. because of a disconnect() call), abort the authentication request
                         handshake.fail(reauth.abort.bind(reauth));
                         // if authentication is successful, initialize connection
@@ -669,15 +705,26 @@ define("coreCore", ["coreCrypto", "coreCryptoUtils", "coreRequest", "coreRequest
             if (APIState.getAPIState() == CONNECTED_STATE || APIState.getAPIState() == PENDING_STATE) {
                 // START RECONNECTING
                 APIState.setAPIState(RECONNECT_STATE);
-                var reconnect = coreRequestHandler.reconnect(this.options, getRID());
-                reconnect.done(function () {
-                    this._handleEnqueuedRequestsAndSetConnected();
-                }.bind(this));
-                reconnect.fail(function () {
-                    // FAIL FINALLY, TRIGGER LOGOUT ACTIONS ETC
-                    this.disconnect();
-                }.bind(this));
-                reconnect.then(reconnectDef.resolve, reconnectDef.reject);
+                var core = this;
+                var attempt = function (n) {
+                    var reconnect = coreRequestHandler.reconnect(core.options, getRID());
+                    reconnect.done(function () {
+                        core._handleEnqueuedRequestsAndSetConnected();
+                        reconnectDef.resolve();
+                    });
+                    reconnect.fail(function (jqXHR) {
+                        // status 0 = no network / request aborted: the session itself is
+                        // still valid, so retry instead of logging the user out.
+                        if (jqXHR && jqXHR.status === 0 && n < 6) {
+                            setTimeout(function () { attempt(n + 1); }, Math.min(2000 * (n + 1), 15000));
+                            return;
+                        }
+                        // FAIL FINALLY, TRIGGER LOGOUT ACTIONS ETC
+                        core.disconnect();
+                        reconnectDef.reject.apply(reconnectDef, arguments);
+                    });
+                };
+                attempt(0);
             } else {
                 //RECONNECT ALREADY HAPPENING -> RESOLVE
                 //TODO: Not dependent on reconnect outcome
