@@ -71,7 +71,7 @@ jobs:
           git ls-files -z | xargs -0 -I{} cp --parents "{}" "${src}/"
           rm -rf "${src}/.github" "${src}/.husky" "${src}/updates.xml" "${src}/.gitignore" "${src}/.gitattributes" \
             "${src}/README.md" "${src}/CHANGELOG.md" "${src}/version.txt" "${src}/package.json" "${src}/package-lock.json" \
-            "${src}/commitlint.config.js" "${src}/release-please-config.json" "${src}/.release-please-manifest.json"
+            "${src}/commitlint.config.js" "${src}/playwright.config.js" "${src}/tests" "${src}/release-please-config.json" "${src}/.release-please-manifest.json"
           xvfb-run -a google-chrome-stable --no-sandbox \
             --pack-extension="${src}" \
             --pack-extension-key="${RUNNER_TEMP}/myjd-mv3.pem"

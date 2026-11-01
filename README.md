@@ -86,6 +86,8 @@ Commits follow [Conventional Commits](https://www.conventionalcommits.org/) and 
 
 Commits are checked by [commitlint](https://commitlint.js.org) in CI. To check them locally as well, run `npm install` once (needs Node.js); this installs a `commit-msg` hook.
 
+A Playwright smoke test (`npm test`, runs in CI on every push and PR) loads the unpacked extension in Chromium and checks the service worker, the popup, Click'n'Load interception and `jdcheck.js`. Locally it needs a display; on Linux run it with `xvfb-run -a npm test` after `npx playwright install chromium`.
+
 Releases are automated with [release-please](https://github.com/googleapis/release-please): it keeps a release PR up to date from the commits on `main` (version bump in `manifest.json` and `updates.xml`, `CHANGELOG.md`). Merging that PR creates the tag and GitHub release, and the workflow attaches the signed `.crx`. Use `Release-As: X.Y.Z` as a commit footer to force a version.
 
 ## Privacy

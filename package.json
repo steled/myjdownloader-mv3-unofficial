@@ -1,11 +1,13 @@
 {
   "name": "myjdownloader-mv3-unofficial",
   "private": true,
-  "description": "Tooling for the unofficial MyJDownloader MV3 extension (commit linting only, nothing here is shipped)",
+  "description": "Tooling for the unofficial MyJDownloader MV3 extension (commit linting and smoke tests, nothing here is shipped)",
   "scripts": {
-    "prepare": "husky"
+    "prepare": "husky",
+    "test": "playwright test"
   },
   "devDependencies": {
+    "@playwright/test": "^1.49.0",
     "@commitlint/cli": "^21.0.0",
     "@commitlint/config-conventional": "^21.0.0",
     "husky": "^9.1.6"
