@@ -28,6 +28,7 @@ let popupCandidates = {};
 let previousActiveTab = null;
 let rc2TabUpdateCallbacks = {};
 let rc2CanCloseIntervalHandles = {};
+let rc2WebInterfaceTabs = {};
 const buildVersion = chrome.runtime.getManifest().version;
 
 // ============================================================
@@ -191,6 +192,95 @@ function onNewCaptchaAvailable(tabId, callbackUrl, params) {
     };
     chrome.tabs.update(tabId, { url: params.finalUrl + "#rc2jdt" });
   }
+}
+
+// "Solve Captcha" in the my.jdownloader.org web interface opens the hoster page
+// as "<hoster>/#rc2jdt?k=<siteKey>&c=<captchaId>". The MV2 extension looked the
+// job up via the MyJD API; the service worker has no API client, so the solver
+// parameters are taken from the URL instead. The token goes back through the
+// web interface tab (callbackUrl "MYJD"), which forwards it to JDownloader.
+const HCAPTCHA_SITEKEY_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function getWebInterfaceCaptchaParams(tabUrl) {
+  let url;
+  try {
+    url = new URL(tabUrl);
+  } catch (e) {
+    return null;
+  }
+  if (!url.hash.startsWith("#rc2jdt")) return null;
+  const query = new URLSearchParams(url.hash.slice("#rc2jdt".length).replace(/^[?&]/, ""));
+  const siteKey = query.get("k");
+  const captchaId = query.get("c");
+  if (!siteKey || !captchaId) return null;
+  return {
+    callbackUrl: "MYJD",
+    params: {
+      siteKey,
+      captchaId,
+      challengeType: HCAPTCHA_SITEKEY_PATTERN.test(siteKey) ? "HCaptchaChallenge" : "RecaptchaV2Challenge",
+      siteDomain: url.hostname,
+      hoster: url.hostname,
+      finalUrl: url.origin + url.pathname + url.search
+    }
+  };
+}
+
+// Runs in the captcha tab's MAIN world (serialized by chrome.scripting, so it
+// must not reference anything outside its own body). Content scripts can't
+// load the remote captcha API under MV3; the page itself can. The placeholder
+// built by rc2Contentscript carries the site key as data-sitekey and points
+// data-callback at window.onResponse; the content script's ResultPoll picks
+// the token up from #captcha-response.
+function renderCaptchaWidgetInPage(cfg) {
+  const isHCaptcha = cfg.challengeType === "HCaptchaChallenge";
+  const placeholderId = isHCaptcha ? "hcaptcha-widget-placeholder" : "recaptcha-widget-placeholder";
+  const getApi = () => isHCaptcha
+    ? window.hcaptcha
+    : (cfg.enterprise ? window.grecaptcha && window.grecaptcha.enterprise : window.grecaptcha);
+  const setResponse = token => {
+    const el = document.getElementById("captcha-response")
+      || document.getElementById(isHCaptcha ? "h-captcha-response" : "g-recaptcha-response");
+    if (el) el.value = token;
+  };
+
+  window.onResponse = setResponse;
+  window.onClickCallbackScript = () => {
+    const api = getApi();
+    if (!api) return;
+    if (!isHCaptcha && cfg.v3action) {
+      let action;
+      try {
+        action = typeof cfg.v3action === "object" ? cfg.v3action : JSON.parse(cfg.v3action);
+      } catch (e) {
+        action = { action: "login" };
+      }
+      api.ready(() => api.execute(action).then(setResponse));
+    } else {
+      api.execute();
+    }
+  };
+  const submit = document.getElementById("submit");
+  if (submit) submit.addEventListener("click", () => window.onClickCallbackScript());
+
+  const script = document.createElement("script");
+  script.src = isHCaptcha
+    ? "https://hcaptcha.com/1/api.js?render=explicit"
+    : (cfg.enterprise
+      ? "https://www.google.com/recaptcha/enterprise.js?render=explicit"
+      : "https://www.google.com/recaptcha/api.js?render=explicit");
+  script.onload = () => {
+    const handle = setInterval(() => {
+      const api = getApi();
+      if (api && typeof api.render === "function") {
+        clearInterval(handle);
+        api.render(placeholderId);
+        window.parent.postMessage({ type: "myjdrc2", name: "content_loaded" }, "*");
+      }
+    }, 100);
+  };
+  script.onerror = () => console.error("[JD rc2] failed to load captcha API", script.src);
+  (document.head || document.documentElement).appendChild(script);
 }
 
 function sendRc2SolutionToJd(request, sender) {
@@ -478,11 +568,23 @@ addMsgListener("myjdrc2", "captcha-new", (req, sender) => {
 
 addMsgListener("myjdrc2", "captcha-get", (req, sender) => {
   const info = rc2TabUpdateCallbacks[sender.tab.id];
-  if (!info) { console.log("no captcha available:", sender.tab.id); return; }
+  const captchaParams = info
+    ? info.captchaParams
+    : getWebInterfaceCaptchaParams(sender.url || sender.tab.url);
+  if (!captchaParams) { console.log("no captcha available:", sender.tab.id); return; }
   safeSendTabMessage(sender.tab.id, {
     name: "myjdrc2", action: "captcha-set",
-    data: { callbackUrl: info.captchaParams.callbackUrl, params: info.captchaParams.params }
+    data: { callbackUrl: captchaParams.callbackUrl, params: captchaParams.params }
   });
+});
+
+addMsgListener("myjdrc2", "render-widget", (req, sender) => {
+  chrome.scripting.executeScript({
+    target: { tabId: sender.tab.id, frameIds: [sender.frameId] },
+    world: "MAIN",
+    func: renderCaptchaWidgetInPage,
+    args: [req.data || {}]
+  }).catch(console.error);
 });
 
 addMsgListener("myjdrc2", "tabmode-init", (req, sender) => {
@@ -512,6 +614,7 @@ chrome.tabs.onCreated.addListener(tab => {
 
 chrome.tabs.onRemoved.addListener(tabId => {
   delete rc2TabUpdateCallbacks[tabId];
+  delete rc2WebInterfaceTabs[tabId];
   delete requestQueue[tabId];
   delete popupCandidates[tabId];
   if (rc2CanCloseIntervalHandles[tabId]) {
@@ -531,6 +634,17 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tabInfo) => {
   // Update popup-candidate info
   if (popupCandidates[tabId] && changeInfo.url) {
     popupCandidates[tabId].tab = tabInfo;
+  }
+
+  // Web interface "Solve Captcha" tab: rc2Contentscript replaces the document at
+  // document_start, so its own DOMContentLoaded listener never fires. Kick it
+  // off once the tab has loaded; it answers with "captcha-get", which resolves
+  // the parameters from the URL.
+  if (changeInfo.status === "complete" && !captchaInfo && tabInfo.url &&
+      getWebInterfaceCaptchaParams(tabInfo.url) &&
+      rc2WebInterfaceTabs[tabId] !== tabInfo.url) {
+    rc2WebInterfaceTabs[tabId] = tabInfo.url;
+    safeSendTabMessage(tabId, { name: "myjdrc2", action: "captcha-available" });
   }
 
   // Inject browser-solver scripts when JD opens a local captcha page

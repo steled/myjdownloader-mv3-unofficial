@@ -318,9 +318,12 @@ let CaptchaFormInjector = (function () {
     }
   };
 
+  // MV3: script elements added by a content script fall under the extension's
+  // CSP, which blocks the remote captcha API and inline code. The widget is
+  // therefore rendered by the background in the page's MAIN world
+  // (see requestWidgetRender); these functions only build the placeholder.
   let insertRc2ScriptIntoDOM = function (body, job) {
-    let nameSpace = job.enterprise === true ? "grecaptcha.enterprise" : "grecaptcha";
-    _logCache.push(Date.now() + " | inserting rc2 script into DOM for job " + JSON.stringify(job));
+    _logCache.push(Date.now() + " | inserting rc2 placeholder into DOM for job " + JSON.stringify(job));
     let captchaContainer = body.getElementsByClassName("captchaContainer")[0];
     captchaContainer.innerHTML = "<div id=\"recaptcha_container\"><form action=\"\" method=\"post\"> <div class=\"placeholder\"> <div id=\"recaptcha_widget\"> \
                 <form action=\"?\" method=\"POST\"> \
@@ -329,83 +332,16 @@ let CaptchaFormInjector = (function () {
     captchaContainer.querySelector('.g-recaptcha').setAttribute("data-sitekey", job.siteKey);
     if (job.siteKeyType === "INVISIBLE") {
       captchaContainer.querySelector('.g-recaptcha').setAttribute("data-size", "invisible");
-      captchaContainer.innerHTML += "<button style='border: 1px solid #FF9900' class='invisible-captcha-button' id='submit' onclick='onClickCallbackScript();'>" + chrome.i18n.getMessage("button_i_am_no_robot")
+      captchaContainer.innerHTML += "<button style='border: 1px solid #FF9900' class='invisible-captcha-button' id='submit'>" + chrome.i18n.getMessage("button_i_am_no_robot")
         + "</button>";
     }
-    let dataCallbackScript = document.createElement('script');
-    dataCallbackScript.type = 'text/javascript';
-    dataCallbackScript.text = 'window.onResponse = function (response) {\n' +
-      '            document.getElementById(\'captcha-response\').value = response;\n' +
-      '        }';
-    body.appendChild(dataCallbackScript);
-
-    let onClickCallbackScript = document.createElement('script');
-    onClickCallbackScript.type = 'text/javascript';
-    if (job.v3action != null && job.v3action !== "") {
-      try {
-        if (typeof job.v3action === 'object') {
-          job.v3action = "`" + JSON.stringify(job.v3action) + "`";
-        } else if (typeof job.v3action === 'string') {
-          job.v3action = "`" + job.v3action + "`";
-          JSON.parse(job.v3action); // trigger fallback if not parsable
-        }
-      } catch (error) {
-        // fallback: we can't get json out of job.v3action
-        job.v3action = "`" + JSON.stringify({ action: "login" }) + "`";
-      }
-
-      let callbackScript = "window.onClickCallbackScript =   function () {\n" +
-        "                " + nameSpace + ".ready(function () {\n" +
-        "                    " + nameSpace + ".execute(JSON.parse(" + job.v3action + ")).then(function (token) {\n" +
-        "                        var el = document.getElementById('captcha-response');\n" +
-        "                        if (el == null) {" +
-        "                           el = document.getElementById('g-recaptcha-response');    " +
-        "                        }           " +
-        "                        el.value = token;\n" +
-        "                    });\n" +
-        "                });\n" +
-        "        };";
-      onClickCallbackScript.text = callbackScript;
-    } else {
-      onClickCallbackScript.text = "window.onClickCallbackScript =   function () {\n" +
-        "                " + nameSpace + ".execute();   \n" +
-        "        };";
-    }
-    body.appendChild(onClickCallbackScript);
-
-    var rc2Script = document.createElement('script');
-    rc2Script.type = 'text/javascript';
-    if (job.enterprise === true) {
-      rc2Script.src = "https://www.google.com/recaptcha/enterprise.js?render=explicit";
-    } else {
-      rc2Script.src = "https://www.google.com/recaptcha/api.js?render=explicit";
-    }
-    rc2Script.onload = function () {
-      var delayedRenderScript = document.createElement('script');
-      delayedRenderScript.type = 'text/javascript';
-      delayedRenderScript.innerText = `
-                    var handle = setInterval(() => {
-                        if (grecaptcha) {
-                    `+ nameSpace + `.render(\"recaptcha-widget-placeholder\");
-                    clearInterval(handle);
-                        }
-                    },100);
-                    `;
-      body.appendChild(delayedRenderScript);
-
-      console.log(Date.now() + " | rc2script onload fired, letting window.parent know");
-      window.parent.postMessage({ type: "myjdrc2", name: "content_loaded" }, "*");
-    };
-    body.appendChild(rc2Script);
-
 
     let resultPoll = new ResultPoll(job);
     resultPoll.poll();
   };
 
   let insertHcScriptIntoDOM = function (body, job) {
-    let nameSpace ="hcaptcha";
-      _logCache.push(Date.now() + " | inserting hc script into DOM for job " + JSON.stringify(job));
+      _logCache.push(Date.now() + " | inserting hc placeholder into DOM for job " + JSON.stringify(job));
       let captchaContainer = body.getElementsByClassName("captchaContainer")[0];
       captchaContainer.innerHTML = "<div id=\"hcaptcha_container\"><form action=\"\" method=\"post\"> <div class=\"placeholder\"> <div id=\"hcaptcha_widget\"> \
                   <form action=\"?\" method=\"POST\"> \
@@ -414,48 +350,9 @@ let CaptchaFormInjector = (function () {
       captchaContainer.querySelector('.h-recaptcha').setAttribute("data-sitekey", job.siteKey);
       if (job.siteKeyType === "INVISIBLE") {
         captchaContainer.querySelector('.h-recaptcha').setAttribute("data-size", "invisible");
-        captchaContainer.innerHTML += "<button style='border: 1px solid #FF9900' class='invisible-captcha-button' id='submit' onclick='onClickCallbackScript();'>" + chrome.i18n.getMessage("button_i_am_no_robot")
+        captchaContainer.innerHTML += "<button style='border: 1px solid #FF9900' class='invisible-captcha-button' id='submit'>" + chrome.i18n.getMessage("button_i_am_no_robot")
           + "</button>";
       }
-      let dataCallbackScript = document.createElement('script');
-      dataCallbackScript.type = 'text/javascript';
-      dataCallbackScript.text = 'window.onResponse = function (response) {\n' +
-        '            document.getElementById(\'captcha-response\').value = response;\n' +
-        '        }';
-      body.appendChild(dataCallbackScript);
-
-      let onClickCallbackScript = document.createElement('script');
-      onClickCallbackScript.type = 'text/javascript';
-
-      let callbackScript = " \
-      window.onClickCallbackScript =   function () { \
-        hcaptcha.execute(); \
-        };"
-      onClickCallbackScript.text = callbackScript;
-
-      body.appendChild(onClickCallbackScript);
-
-      var hcScript = document.createElement('script');
-      hcScript.type = 'text/javascript';
-      hcScript.src = "https://hcaptcha.com/1/api.js?render=explicit";
-      hcScript.onload = function () {
-        var delayedRenderScript = document.createElement('script');
-        delayedRenderScript.type = 'text/javascript';
-        delayedRenderScript.innerText = `
-                      var handle = setInterval(() => {
-                          if (hcaptcha) {
-                      `+ nameSpace + `.render(\"hcaptcha-widget-placeholder\");
-                        clearInterval(handle);
-                          }
-                      },100);
-                      `;
-        body.appendChild(delayedRenderScript);
-
-        console.log(Date.now() + " | hcScript onload fired, letting window.parent know");
-        window.parent.postMessage({ type: "myjdrc2", name: "content_loaded" }, "*");
-    };
-    body.appendChild(hcScript);
-
 
     let resultPoll = new ResultPoll(job);
     resultPoll.poll();
@@ -492,6 +389,7 @@ let CaptchaFormInjector = (function () {
 
 
       document.body = newBody;
+      requestWidgetRender(job);
 
       if (job.callbackUrl === "MYJD") {
         var captchaControls = document.getElementById("captchaControlsContainer");
@@ -503,6 +401,19 @@ let CaptchaFormInjector = (function () {
 
     }, function (xhrError) {
       console.error(xhrError);
+    });
+  };
+
+  let requestWidgetRender = function (job) {
+    chrome.runtime.sendMessage({
+      name: "myjdrc2",
+      action: "render-widget",
+      data: {
+        challengeType: job.challengeType,
+        enterprise: job.enterprise === true,
+        invisible: job.siteKeyType === "INVISIBLE",
+        v3action: job.v3action
+      }
     });
   };
 
