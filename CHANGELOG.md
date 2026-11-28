@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.3.24](https://github.com/steled/myjdownloader-mv3-unofficial/compare/v3.3.23...v3.3.24) (2026-11-28)
+
+
+### Bug Fixes
+
+* solve captchas opened from the MyJDownloader web interface ([#17](https://github.com/steled/myjdownloader-mv3-unofficial/issues/17)) ([a358fc1](https://github.com/steled/myjdownloader-mv3-unofficial/commit/a358fc11c64b95b43b7fad6635551ed366aaecd9))
+
 ## [3.3.23](https://github.com/steled/myjdownloader-mv3-unofficial/compare/v3.3.22...v3.3.23) (2026-11-01)
 
 
